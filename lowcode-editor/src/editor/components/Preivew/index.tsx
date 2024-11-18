@@ -3,6 +3,9 @@ import { useComponentConfigStore } from "../../stores/component-config";
 import { Component, useComponetsStore } from "../../stores/components"
 import { message } from "antd";
 import { ActionConfig } from "../Setting/ActionModal";
+// import * as Babel from '@babel/standalone';
+import { transform } from "sucrase";
+import * as babel from '@babel/core';
 
 export function Preview() {
     const { components } = useComponetsStore();
@@ -28,14 +31,110 @@ export function Preview() {
                                 message.error(action.config.text);
                             }
                         } else if(action.type === 'customJS') {
-                            const func = new Function('context', action.code);
-                            func({
-                                name: component.name,
-                                props: component.props,
-                                showMessage(content: string) {
-                                    message.success(content)
-                                }
-                            });
+													const codeToCompile = action.code;
+													let compiledCode = codeToCompile
+													console.log('(Window as any).Babel', (Window as any).Babel)
+													// let compiledCode = (babel as any).transform(codeToCompile, {
+													// 	// presets: ['env','react'], // 添加需要的 preset
+													// 	presets: ['@babel/preset-env', '@babel/preset-react'],
+														
+													// }).code;
+													// let compiledCode = transform(codeToCompile, {
+													// 	transforms: ["typescript", "imports", "jsx"],
+													// }).code;
+													console.log('compiledCode', compiledCode)
+													
+													// console.log('xxxxx', compiledCode)
+													// compiledCode = compiledCode.replace(/^\s*["']use strict["'];?/m, '')
+
+													let iframe:any= document.createElement('iframe');
+  												iframe.setAttribute('sandbox', 'allow-same-origin allow-scripts');
+													iframe.style.display = 'none';
+  												document.documentElement.appendChild(iframe);
+
+													// function executeCode(code: string, globalScope: any, iframe: any) {
+													// 	const sandbox = iframe.contentWindow
+													// 	sandbox.__INJECT_VARS__ = globalScope;
+												
+													// 	return sandbox.eval(`
+													// 		(() => {
+													// 			with (window.__INJECT_VARS__) { 
+													// 				return (${code})
+													// 			}
+													// 		})()
+													// 	`);
+													// }
+
+													const compileModuleResolve = (
+														code: string,
+														dependencies: Record<string, any> = {}
+													) => {
+														// 实现module函数，用来套动态执行的函数结果
+														const module: any = {
+															exports: {
+																__esModule: false,
+																default: null as unknown,
+															},
+														};
+													
+														// 实现一个require方法，用于模块执行时挂载依赖
+														const require = (packageName: string) => {
+															if (dependencies[packageName]) {
+																return dependencies[packageName];
+															}
+														};
+														// 动态执行
+														Function("require, exports, module", code)(require, module.exports, module);
+														return module;
+													};
+
+													let dependencies: Record<string, any> = {};
+
+													// const module:any = compileModuleResolve(compiledCode, dependencies)
+													// console.log('module', module)
+
+													function executeCode(code: string, globalScope:any, iframe: any) {
+														iframe.contentWindow.myName = '王老板'
+														let sandbox = iframe.contentWindow;
+														
+													console.log('sandbox', sandbox)
+														// 将 globalScope 里的所有变量作为参数传递给新函数
+														const functionBody = `
+															return (${code});
+														`;
+														
+													
+														// 创建新的函数并执行
+														const func = new sandbox.Function(...Object.keys(globalScope), functionBody);
+													
+														// 将 globalScope 的值传递给新函数
+														const result = func(...Object.values(globalScope));
+														sandbox.result = result;
+														// console.log('sandbox', ...Object.keys(globalScope))
+
+														return result;
+													}
+													const globalScope = {
+														context:{
+															name: component.name,
+															props: component.props,
+														},
+														showMessage(content: string) {
+															message.success(content);
+														}
+													};
+													console.log('compiledCode111', compiledCode)
+
+													executeCode(compiledCode, globalScope, iframe);
+													
+                            // const func = new Function('context', compiledCode);
+                            // func({
+                            //     name: component.name,
+                            //     props: component.props,
+                            //     showMessage(content: string) {
+                            //         message.success(content)
+                            //     }
+                            // });
                         } else if(action.type === 'componentMethod') {
                             const component = componentRefs.current[action.config.componentId];
 
