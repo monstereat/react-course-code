@@ -41,4 +41,4 @@ const Modal: React.ForwardRefRenderFunction<ModalRef, CommonComponentProps> = ({
   );
 }
 
-export default forwardRef(Modal);
+export default forwardRef(Modal as any);
