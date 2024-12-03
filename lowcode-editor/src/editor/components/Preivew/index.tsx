@@ -3,9 +3,21 @@ import { useComponentConfigStore } from "../../stores/component-config";
 import { Component, useComponetsStore } from "../../stores/components"
 import { message } from "antd";
 import { ActionConfig } from "../Setting/ActionModal";
-// import * as Babel from '@babel/standalone';
-import { transform } from "sucrase";
-import * as babel from '@babel/core';
+import * as Babel from '@babel/standalone';
+// import { transform } from "sucrase";
+// import * as babel from '@babel/core';
+// import babel from '@babel/core';
+
+function convertLetToVar (code:any) {
+	// 使用 Babel 的 transformSync 方法转换代码
+	console.log('code', code)
+	console.log('babel', Babel)
+	// const result:any = Babel.transform(code, {
+	// 	presets: ['env'],  // 使用 preset-env 转换为兼容的代码
+	// });
+
+	// return result.code;
+}
 
 export function Preview() {
     const { components } = useComponetsStore();
@@ -32,17 +44,23 @@ export function Preview() {
                             }
                         } else if(action.type === 'customJS') {
 													const codeToCompile = action.code;
-													let compiledCode = codeToCompile
+													// let compiledCode = codeToCompile
 													console.log('(Window as any).Babel', (Window as any).Babel)
-													// let compiledCode = (babel as any).transform(codeToCompile, {
-													// 	// presets: ['env','react'], // 添加需要的 preset
-													// 	presets: ['@babel/preset-env', '@babel/preset-react'],
+													
+													
+													let formatCode = (Babel as any).transform(codeToCompile, {
+														// presets: ['env','react'], // 添加需要的 preset
+														presets: ['env'],
 														
-													// }).code;
+													}).code;
 													// let compiledCode = transform(codeToCompile, {
 													// 	transforms: ["typescript", "imports", "jsx"],
 													// }).code;
-													console.log('compiledCode', compiledCode)
+													// let formatCode = convertLetToVar(codeToCompile)
+													
+													console.log('codeToCompile', codeToCompile)
+													let compiledCode = formatCode
+													console.log('formatCode', formatCode)
 													
 													// console.log('xxxxx', compiledCode)
 													// compiledCode = compiledCode.replace(/^\s*["']use strict["'];?/m, '')
@@ -99,17 +117,18 @@ export function Preview() {
 														
 													console.log('sandbox', sandbox)
 														// 将 globalScope 里的所有变量作为参数传递给新函数
-														const functionBody = `
-															return (${code});
-														`;
+														// const functionBody = `
+														// 	return ${code};
+														// `;
 														
-													
+														// console.log('functionBody', functionBody)
 														// 创建新的函数并执行
-														const func = new sandbox.Function(...Object.keys(globalScope), functionBody);
+														const func = new sandbox.Function(...Object.keys(globalScope), code);
 													
 														// 将 globalScope 的值传递给新函数
 														const result = func(...Object.values(globalScope));
 														sandbox.result = result;
+														console.log('resulxxt', sandbox.result)
 														// console.log('sandbox', ...Object.keys(globalScope))
 
 														return result;
@@ -124,6 +143,8 @@ export function Preview() {
 														}
 													};
 													console.log('compiledCode111', compiledCode)
+
+													
 
 													executeCode(compiledCode, globalScope, iframe);
 													
